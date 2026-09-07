@@ -2,6 +2,10 @@
 
 @theme{
 
+  --font-title: var(--font-sora), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+
+  /* Paleta Base (Fondo Claro + Azul Marino) */
   --color-background: #f8fafc;       /* Fondo claro nítido (slate-50) */
   --color-foreground: #0f172a;       /* Texto azul marino muy oscuro / casi negro (slate-900) */
   --color-muted: #64748b;            /* Texto secundario / subtítulos (slate-500) */

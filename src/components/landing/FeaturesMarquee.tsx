@@ -8,13 +8,10 @@ const features = [
       descripcion: "Filtros instantáneos por número, partes o matrícula.",
     },
     {
-      titulo: "Control de Vencimientos",
-      descripcion: "Alertas tempranas para certificados e ingresos.",
-    },
-    {
-      titulo: "Gestión por Escribano",
-      descripcion: "Organización centralizada según sello o matriculado.",
-    },
+      titulo: "Ingreso en Término",
+      descripcion: "Alertas tempranas de vencimiento para la presentación del testimonio en el Registro.",
+    }
+    
   ];
   
   export function FeaturesMarquee() {
