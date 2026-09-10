@@ -5,15 +5,17 @@ import { FileText,Building2, Clock, CheckCircle2,Archive, Settings, Stamp } from
 const statusNavigation = [
 {label: 'En Registro', href: '/dashboard?estado=en_registro', icon:Building2},
 {label:'Pendientes/Observadas', href:'/dashboard?estado=pendiente',icon:Clock},
-{label:'En stock', href:'/dashboard?estado=en:_stock', icon:Archive}
+{label:'En stock', href:'/dashboard?estado=en_stock', icon:Archive}
 ]
 
 export function Sidebar (){
     return (
-        <aside className="w-64 h-screen bg-slate-900 text-slate-200 border-r ">
-            <div>
-          <span className="font-bold text-base text-white block leading-none">Notary Hub</span>
-          <span className="text-[10px] text-slate-400 tracking-wider uppercase">Gestión Notarial</span>
+        <aside className="w-64 h-screen border-r border-slate-200 bg-white text-slate-900 fixed left-0 top-0">
+        
+        <div className="h-16 px-6 border-b border-slate-200 flex items-center">
+          <span className="font-title text-xl font-semibold tracking-tight text-slate-900">
+            Notary<span className="text-primary">Hub</span>
+          </span>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
