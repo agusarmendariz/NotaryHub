@@ -1,6 +1,7 @@
 
 
 import TestimoniosTable, { Testimonio } from '@/components/dashboard/TestimoniosTable';
+import { TableToolbar } from '@/components/dashboard/TableToolBar';
 
 interface PageProps {
   searchParams: Promise<{
@@ -61,9 +62,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
-   
-
-      {/* AQUÍ ESTÁ LA FIX: Pasar testimonios y estadoActual como props */}
+    <TableToolbar/>
       <TestimoniosTable 
         testimonios={testimoniosFiltrados} 
         estadoActual={estado} 

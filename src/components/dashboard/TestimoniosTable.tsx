@@ -1,7 +1,8 @@
 'use client'
 
-import { AlertCircle, ExternalLink, FileText } from "lucide-react"
+import { AlertCircle, ExternalLink, FileText, Search } from "lucide-react"
 import Link from "next/link"
+
 
 export interface Testimonio {
     id: string;
@@ -20,6 +21,7 @@ interface TestimoniosTableProps {
 }
 
 export default function TestimoniosTable ({ testimonios,estadoActual}: TestimoniosTableProps) {
+
     if (testimonios.length===0){
 return(
     <div className="p-12 text-center bg-white border border-slate-200 rounded-xl my-4">
@@ -35,6 +37,7 @@ return(
 return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
+      
         <table className="w-full text-left text-xs text-slate-700">
           <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
             <tr>
