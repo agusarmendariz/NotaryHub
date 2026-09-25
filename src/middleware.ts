@@ -28,15 +28,24 @@ export async function middleware(request: NextRequest) {
   // esto es lo que refresca la sesión si el token expiró
   const { data: { user } } = await supabase.auth.getUser()
 
-  // protegemos todo lo que no sea /login
-  if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+  const pathname = request.nextUrl.pathname
+
+  // 2. Proteger solo las rutas privadas (ej: /dashboard y sus subrutas)
+  if (!user && pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
+  // 3. Si ya está logueado e intenta ir a /login, mandarlo al dashboard
+  if (user && pathname === '/login') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
   return supabaseResponse
-}
+  }
 
 export const config = {
   matcher: [

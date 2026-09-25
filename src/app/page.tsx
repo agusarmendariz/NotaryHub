@@ -16,7 +16,7 @@ export default function Home() {
           </div>
           
           <Link
-            href="/dashboard"
+            href="/login"
             className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-medium px-6 py-2.5 rounded-xl transition-all duration-200 shadow-md shadow-primary/20 active:scale-[0.98]"
           >
             Ingresar
@@ -40,7 +40,7 @@ export default function Home() {
             </p>
   
             <Link
-              href="/dashboard"
+              href="/login"
               className="inline-flex items-center justify-center gap-3 bg-primary hover:bg-primary-hover text-white font-medium text-base px-8 py-4 rounded-xl transition-all shadow-xl shadow-primary/25 active:scale-[0.98]"
             >
               Ingresar al Sistema
