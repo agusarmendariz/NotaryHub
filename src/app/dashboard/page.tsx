@@ -1,7 +1,11 @@
 import TestimoniosTable, { Testimonio } from '@/components/dashboard/TestimoniosTable';
 import { TableToolbar } from '@/components/dashboard/TableToolBar';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/server';
 import { Escritura } from '@/types/escritura';
+
+// 1. Forzar datos frescos sin caché en el servidor
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   searchParams: Promise<{
@@ -11,8 +15,10 @@ interface PageProps {
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
-  const { search = '', estado = 'en_registro' } = await searchParams;
+  const { search = '', estado } = await searchParams;
 
+  // 2. Creás el cliente asíncrono con las cookies del usuario
+  const supabase = await createClient();
 
   let query = supabase.from('escrituras').select('*');
 
@@ -55,7 +61,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       <TableToolbar />
       <TestimoniosTable 
         testimonios={testimonios} 
-        estadoActual={estado} 
+        estadoActual={estado || 'en_registro'} 
       />
     </div>
   );

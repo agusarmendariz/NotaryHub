@@ -11,7 +11,7 @@ export function Navbar() {
         </span>
       </div>
       <Link
-        href="/dashboard/layout"
+        href="/login"
         className="inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium px-5 py-2.5 rounded-full transition-all duration-200 shadow-lg shadow-accent/20"
       >
         Ingresar
