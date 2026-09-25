@@ -33,7 +33,7 @@ export function TableToolbar() {
       </div>
 
       <Link
-        href="/dashboard/nuevo"
+        href="/dashboard/nuevoTestimonio"
         className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs px-3.5 py-2 rounded-lg shadow-sm transition-all shrink-0"
       >
         <Plus className="w-4 h-4" />
