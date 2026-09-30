@@ -3,9 +3,9 @@ import { FileText, Building2, Clock, CheckCircle2, Archive, Settings, Stamp } fr
 import { LogoutButton } from "../logout/logoutButtom";
 
 const statusNavigation = [
-  { label: 'En Registro', href: '/dashboard?estado=en_registro', icon: Building2 },
-  { label: 'Pendientes/Observadas', href: '/dashboard?estado=pendiente', icon: Clock },
-  { label: 'En stock', href: '/dashboard?estado=en_stock', icon: Archive }
+  { label: 'En Registro', href: '/dashboard?estado=EN_REGISTRO', icon: Building2 },
+  { label: 'Pendientes/Observadas', href: '/dashboard?estado=PENDIENTE_INGRESO', icon: Clock },
+  { label: 'En stock', href: '/dashboard?estado=EN_STOCK', icon: Archive }
 ];
 
 export function Sidebar() {

@@ -3,7 +3,7 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/client';
 import { EstadoEscritura, CondicionRegistral } from '@/types/escritura';
 
 interface FormState {
@@ -27,13 +27,14 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   const [formData, setFormData] = useState<FormState>({
     numero_escritura: '',
     anio: new Date().getFullYear().toString(),
     partes: '',
     tipo_acto: '',
-    estado: 'EN_REGISTRO',
+    estado: 'PENDIENTE_INGRESO', // Cambiado a PENDIENTE por defecto si estás cargando un testimonio nuevo
     condicion_registral: 'NO_APLICA',
     fecha_firma: '',
     matricula_inmueble: '',
@@ -47,10 +48,21 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
 
   const handleChange = (e: InputChangeEvent) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      
+      // Sincronizar automáticamente cuando la condición pasa a PROVISIONAL
+      if (name === 'condicion_registral') {
+        if (value === 'PROVISIONAL') {
+          updated.estado = 'PENDIENTE_INGRESO';
+        } else if (prev.condicion_registral === 'PROVISIONAL' && value !== 'PROVISIONAL') {
+          updated.estado = 'EN_REGISTRO';
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -60,8 +72,8 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
 
     try {
       const payload = {
-        numero_escritura: parseInt(formData.numero_escritura),
-        anio: parseInt(formData.anio),
+        numero_escritura: parseInt(formData.numero_escritura, 10),
+        anio: parseInt(formData.anio, 10),
         partes: formData.partes,
         tipo_acto: formData.tipo_acto,
         estado: formData.estado,
@@ -75,17 +87,19 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
         fecha_ingreso_registro: formData.fecha_ingreso_registro || null,
       };
 
-      const { error: insertError } = await supabase
+      const { data, error: insertError } = await supabase
         .from('escrituras')
-        .insert([payload]);
+        .insert([payload])
+        .select();
 
       if (insertError) throw insertError;
+
+      router.refresh();
 
       if (onClose) {
         onClose();
       } else {
         router.push('/dashboard');
-        router.refresh();
       }
     } catch (err: any) {
       setError(err.message || 'Error al guardar la escritura');

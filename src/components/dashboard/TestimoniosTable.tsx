@@ -10,7 +10,7 @@ export interface Testimonio {
   acto: string;
   partes: string;
   fechaIngreso: string;
-  estado: 'en_registro' | 'pendiente' | 'en_stock';
+  estado: 'EN_REGISTRO' | 'PENDIENTE_INGRESO' | 'EN_STOCK';
   motivoObservacion?: string;
 }
 
@@ -45,7 +45,7 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
               <th className="px-6 py-3.5">N° Escritura</th>
               <th className="px-6 py-3.5">Acto / Operación</th>
               <th className="px-6 py-3.5">Partes Intervinientes</th>
-              {estadoActual === 'pendiente' && (
+              {estadoActual === '' && (
                 <th className="px-6 py-3.5 text-amber-700">Motivo de Observación</th>
               )}
               <th className="px-6 py-3.5">Fecha Ingreso</th>
@@ -81,7 +81,7 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
                 </td>
 
                 {/* Motivo de Observación (Solo en solapa Pendientes) */}
-                {estadoActual === 'pendiente' && (
+                {estadoActual === 'PENDIENTE_INGRESO' && (
                   <td className="px-6 py-4">
                     <div className="flex items-start gap-1.5 text-amber-900 bg-amber-500/10 px-2.5 py-1.5 rounded-md border border-amber-500/20 max-w-md">
                       <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
