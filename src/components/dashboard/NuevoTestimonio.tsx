@@ -163,6 +163,8 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
             <input
               type="date"
               name="fecha_firma"
+              min="1900-01-01"
+              max="2099-12-31"
               value={formData.fecha_firma}
               onChange={handleChange}
               required

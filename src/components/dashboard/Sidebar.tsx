@@ -5,7 +5,8 @@ import { LogoutButton } from "../logout/logoutButtom";
 const statusNavigation = [
   { label: 'En Registro', href: '/dashboard?estado=EN_REGISTRO', icon: Building2 },
   { label: 'Pendientes/Observadas', href: '/dashboard?estado=PENDIENTE_INGRESO', icon: Clock },
-  { label: 'En stock', href: '/dashboard?estado=EN_STOCK', icon: Archive }
+  { label: 'En stock', href: '/dashboard?estado=EN_STOCK', icon: Archive },
+  { label: 'Retiradas', href: '/dashboard?estado=RETIRADA', icon: Stamp }
 ];
 
 export function Sidebar() {

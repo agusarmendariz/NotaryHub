@@ -1,4 +1,4 @@
-import TestimoniosTable, { Testimonio } from '@/components/dashboard/TestimoniosTable';
+import TestimoniosTable from '@/components/dashboard/TestimoniosTable';
 import { TableToolbar } from '@/components/dashboard/TableToolBar';
 import { createClient } from '@/lib/server';
 import { Escritura } from '@/types/escritura';
@@ -17,15 +17,28 @@ interface PageProps {
 export default async function DashboardPage({ searchParams }: PageProps) {
   const { search = '', estado } = await searchParams;
 
-  // 2. Creás el cliente asíncrono con las cookies del usuario
+  // 2. Cliente de Supabase para Server Components
   const supabase = await createClient();
 
   let query = supabase.from('escrituras').select('*');
 
+  // 3. Normalizar el parámetro del Sidebar/URL al Enum exacto de Supabase
   if (estado) {
-    query = query.eq('estado', estado.toUpperCase());
+    const estadoUpper = estado.toUpperCase();
+    if (estadoUpper === 'PENDIENTE' || estadoUpper === 'PENDIENTE_INGRESO') {
+      query = query.eq('estado', 'PENDIENTE_INGRESO');
+    } else if (estadoUpper === 'EN_REGISTRO') {
+      query = query.eq('estado', 'EN_REGISTRO');
+    } else if (estadoUpper === 'EN_STOCK') {
+      query = query.eq('estado', 'EN_STOCK');
+    } else if (estadoUpper === 'RETIRADA') {
+      query = query.eq('estado', 'RETIRADA');
+    } else {
+      query = query.eq('estado', estadoUpper);
+    }
   }
 
+  // 4. Búsqueda por término
   if (search.trim()) {
     const termino = `%${search.trim()}%`;
     query = query.or(
@@ -41,27 +54,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     console.error('Error al obtener escrituras desde Supabase:', error.message);
   }
 
+  // Pasamos los datos puros sin transformar a interfaces viejas
   const escrituras = (escriturasData as Escritura[]) || [];
 
-  const testimonios: Testimonio[] = escrituras.map((item) => ({
-    id: item.id,
-    matricula: item.matricula_inmueble || 'S/N',
-    escrituraNro: `N° ${item.numero_escritura}`,
-    acto: item.tipo_acto,
-    partes: item.partes,
-    fechaIngreso: item.fecha_ingreso_registro
-      ? new Date(item.fecha_ingreso_registro).toLocaleDateString('es-AR')
-      : item.fecha_firma,
-    estado: item.estado.toLowerCase() as Testimonio['estado'],
-    motivoObservacion: item.motivo_observacion || undefined,
-  }));
-
   return (
-    <div className="space-y-4 max-w-7xl mx-auto">
+    <div className="space-y-4 max-w-7xl mx-auto font-body">
       <TableToolbar />
       <TestimoniosTable 
-        testimonios={testimonios} 
-        estadoActual={estado || 'en_registro'} 
+        testimonios={escrituras} 
+        estadoActual={estado || 'EN_REGISTRO'} 
       />
     </div>
   );

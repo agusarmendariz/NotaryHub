@@ -10,7 +10,7 @@ export type CondicionRegistral =
   | 'NO_APLICA';
 
 export interface Escritura {
-  id: string; // UUID de Supabase
+  id: number
   created_at?: string;
   numero_escritura: number;
   anio: number;
