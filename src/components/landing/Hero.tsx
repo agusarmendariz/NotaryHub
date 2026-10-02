@@ -17,7 +17,7 @@ export function Hero() {
       </p>
 
       <Link
-        href="/dashboard"
+        href="/login"
         className="inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-medium px-8 py-3.5 rounded-xl transition-all shadow-xl shadow-accent/20"
       >
         Probar App
