@@ -34,7 +34,7 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
     anio: new Date().getFullYear().toString(),
     partes: '',
     tipo_acto: '',
-    estado: 'PENDIENTE_INGRESO', // Cambiado a PENDIENTE por defecto si estás cargando un testimonio nuevo
+    estado: 'PENDIENTE_INGRESO',
     condicion_registral: 'NO_APLICA',
     fecha_firma: '',
     matricula_inmueble: '',
@@ -52,7 +52,6 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
       
-      // Sincronizar automáticamente cuando la condición pasa a PROVISIONAL
       if (name === 'condicion_registral') {
         if (value === 'PROVISIONAL') {
           updated.estado = 'PENDIENTE_INGRESO';
@@ -87,7 +86,7 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
         fecha_ingreso_registro: formData.fecha_ingreso_registro || null,
       };
 
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('escrituras')
         .insert([payload])
         .select();
@@ -108,91 +107,91 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
     }
   };
 
+  // Clases compartidas optimizadas para legibilidad y toque en móviles
+  const inputBaseStyles =
+    'w-full px-3.5 py-2.5 min-h-[44px] text-base sm:text-sm border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground transition-all';
+  const labelStyles =
+    'block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5';
+
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-card rounded-xl border border-border shadow-sm space-y-6 font-body">
+    <div className="w-full max-w-3xl mx-auto p-4 sm:p-6 bg-card rounded-2xl border border-border/80 shadow-sm space-y-6 font-body max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
       <div>
-        <h2 className="text-2xl font-title font-semibold tracking-tight text-foreground">
+        <h2 className="text-xl sm:text-2xl font-title font-semibold tracking-tight text-foreground">
           Nueva Escritura
         </h2>
-        <p className="text-sm text-muted">
+        <p className="text-xs sm:text-sm text-muted mt-0.5">
           Carga un nuevo Primer Testimonio
         </p>
       </div>
 
       {error && (
-        <div className="p-3 text-sm text-red-700 bg-red-500/10 rounded-lg border border-red-500/20 font-medium">
+        <div className="p-3 text-sm text-red-700 bg-red-500/10 rounded-xl border border-red-500/20 font-medium">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* BLOQUE 1: Datos de la Escritura */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* BLOQUE 1: Datos numéricos y fecha */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">
-              Número Escritura *
-            </label>
+            <label className={labelStyles}>N° Escritura *</label>
             <input
               type="number"
               name="numero_escritura"
               value={formData.numero_escritura}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground transition-all"
+              inputMode="numeric"
+              placeholder="123"
+              className={inputBaseStyles}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">
-              Año *
-            </label>
+            <label className={labelStyles}>Año *</label>
             <input
               type="number"
               name="anio"
               value={formData.anio}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground transition-all"
+              inputMode="numeric"
+              className={inputBaseStyles}
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">
-              Fecha de Firma *
-            </label>
+          <div className="col-span-2 md:col-span-1">
+            <label className={labelStyles}>Fecha de Firma *</label>
             <input
               type="date"
               name="fecha_firma"
               min="1900-01-01"
-              max="2099-12-31"
+              max="9999-12-31"
               value={formData.fecha_firma}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground transition-all"
+              className={inputBaseStyles}
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* BLOQUE 2: Acto y Partes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">
-              Tipo de Acto *
-            </label>
+            <label className={labelStyles}>Tipo de Acto *</label>
             <input
               type="text"
               name="tipo_acto"
-              placeholder="Ej: Compraventa, Donación, Poder"
+              placeholder="Ej: Compraventa, Donación"
               value={formData.tipo_acto}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground placeholder:text-muted/60 transition-all"
+              className={`${inputBaseStyles} placeholder:text-muted/60`}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">
-              Partes Intervinientes *
-            </label>
+            <label className={labelStyles}>Partes Intervinientes *</label>
             <input
               type="text"
               name="partes"
@@ -200,22 +199,20 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
               value={formData.partes}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground placeholder:text-muted/60 transition-all"
+              className={`${inputBaseStyles} placeholder:text-muted/60`}
             />
           </div>
         </div>
 
-        {/* BLOQUE 2: Estado y Datos Registrales */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* BLOQUE 3: Estado y Datos Registrales */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">
-              Estado Inicial
-            </label>
+            <label className={labelStyles}>Estado Inicial</label>
             <select
               name="estado"
               value={formData.estado}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground transition-all"
+              className={inputBaseStyles}
             >
               <option value="PENDIENTE_INGRESO">Pendiente de Ingreso</option>
               <option value="EN_REGISTRO">En Registro</option>
@@ -224,28 +221,24 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">
-              Matrícula Inmueble
-            </label>
+            <label className={labelStyles}>Matrícula Inmueble</label>
             <input
               type="text"
               name="matricula_inmueble"
               placeholder="Ej: 12345/0"
               value={formData.matricula_inmueble}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground placeholder:text-muted/60 transition-all"
+              className={`${inputBaseStyles} placeholder:text-muted/60`}
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">
-              Condición Registral
-            </label>
+          <div className="sm:col-span-2 md:col-span-1">
+            <label className={labelStyles}>Condición Registral</label>
             <select
               name="condicion_registral"
               value={formData.condicion_registral}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground transition-all"
+              className={inputBaseStyles}
             >
               <option value="NO_APLICA">No Aplica</option>
               <option value="DEFINITIVA">Definitiva</option>
@@ -254,9 +247,9 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
           </div>
         </div>
 
-        {/* BLOQUE 3: Motivo de Observación Condicional */}
+        {/* BLOQUE 4: Motivo de Observación Condicional */}
         {formData.condicion_registral === 'PROVISIONAL' && (
-          <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/20 space-y-2">
+          <div className="p-3.5 sm:p-4 bg-amber-500/10 rounded-xl border border-amber-500/20 space-y-1.5">
             <label className="block text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300">
               Motivo de Observación / Defecto
             </label>
@@ -266,26 +259,26 @@ export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
               placeholder="Detalle los defectos o requisitos faltantes..."
               value={formData.motivo_observacion}
               onChange={handleChange}
-              className="w-full p-2.5 text-sm rounded-md border border-amber-500/30 bg-card text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
+              className="w-full p-3 text-base sm:text-sm rounded-lg border border-amber-500/30 bg-card text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
             />
           </div>
         )}
 
-        {/* BLOQUE 4: Botones de Acción */}
-        <div className="pt-4 border-t border-border flex items-center justify-end gap-3">
+        {/* BLOQUE 5: Botones de Acción */}
+        <div className="pt-4 border-t border-border flex flex-col-reverse sm:flex-row items-center sm:justify-end gap-2.5 sm:gap-3">
           <button
             type="button"
             onClick={onClose || (() => router.push('/dashboard'))}
-            className="px-4 py-2 text-xs font-medium text-muted hover:text-foreground hover:bg-primary-light/50 rounded-lg transition-colors"
+            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 min-h-[44px] text-sm font-medium text-muted hover:text-foreground hover:bg-primary-light/50 rounded-xl transition-colors text-center"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary-hover text-white rounded-lg shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 min-h-[44px] text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>{loading ? 'Guardando...' : 'Registrar Escritura'}</span>
           </button>
         </div>
