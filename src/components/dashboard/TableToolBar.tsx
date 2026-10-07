@@ -4,7 +4,7 @@ import { Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
-export function TableToolbar() {
+export default function TableToolbar() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
