@@ -5,6 +5,7 @@ import { AlertCircle, ExternalLink, FileText, CheckCircle, Trash2 } from "lucide
 import Link from "next/link";
 import { createClient } from "@/lib/client";
 import { Escritura } from "@/types/escritura";
+import { toast } from 'sonner';
 
 interface TestimoniosTableProps {
   testimonios: Escritura[];
@@ -25,31 +26,40 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
       })
       .eq('id', id);
 
-    if (error) {
-      alert('Error al actualizar el estado: ' + error.message);
-    } else {
-      router.refresh();
-    }
-  };
-
-  // Acción: Borrar registro por error de carga
-  const handleEliminar = async (id: number) => {
-    const confirmado = window.confirm(
-      '¿Estás seguro de que deseas eliminar esta escritura? Esta acción no se puede deshacer.'
-    );
-    if (!confirmado) return;
-
-    const { error } = await supabase
-      .from('escrituras')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      alert('Error al eliminar: ' + error.message);
-    } else {
-      router.refresh();
-    }
-  };
+      if (error) {
+        toast.error('Error al entregar escritura: ' + error.message);
+      } else {
+        toast.success('Escritura marcada como entregada correctamente');
+        router.refresh();
+      }
+    };
+  
+    // Acción: Borrar registro por error de carga
+    const handleEliminar = (id: number) => {
+      toast('¿Deseás eliminar esta escritura?', {
+        description: 'Esta acción no se puede deshacer.',
+        action: {
+          label: 'Eliminar',
+          onClick: async () => {
+            const { error } = await supabase
+              .from('escrituras')
+              .delete()
+              .eq('id', id);
+    
+            if (error) {
+              toast.error('Error al eliminar la escritura: ' + error.message);
+            } else {
+              toast.success('Escritura eliminada con éxito');
+              router.refresh();
+            }
+          },
+        },
+        cancel: {
+          label: 'Cancelar',
+          onClick: () => {},
+        },
+      });
+    };
 
   /* Estado vacío */
   if (testimonios.length === 0) {
