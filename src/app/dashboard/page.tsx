@@ -1,6 +1,6 @@
+import { createClient } from '@/lib/server'; // Asegurar el import correcto de Server Component
+import TableToolbar from '../../components/dashboard/TableToolBar';
 import TestimoniosTable from '@/components/dashboard/TestimoniosTable';
-import { TableToolbar } from '@/components/dashboard/TableToolBar';
-import { createClient } from '@/lib/server';
 import { Escritura } from '@/types/escritura';
 
 // 1. Forzar datos frescos sin caché en el servidor
@@ -38,12 +38,22 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
   }
 
-  // 4. Búsqueda por término
+  // 4. Búsqueda por término (Soporta texto y N° de escritura si es un número)
   if (search.trim()) {
-    const termino = `%${search.trim()}%`;
-    query = query.or(
-      `matricula_inmueble.ilike.${termino},partes.ilike.${termino},tipo_acto.ilike.${termino}`
-    );
+    const term = search.trim();
+    const terminoLike = `%${term}%`;
+    
+    // Si el usuario ingresa un número, incluimos la búsqueda exacta por numero_escritura
+    if (!isNaN(Number(term))) {
+      const numEscritura = parseInt(term, 10);
+      query = query.or(
+        `numero_escritura.eq.${numEscritura},matricula_inmueble.ilike.${terminoLike},partes.ilike.${terminoLike},tipo_acto.ilike.${terminoLike}`
+      );
+    } else {
+      query = query.or(
+        `matricula_inmueble.ilike.${terminoLike},partes.ilike.${terminoLike},tipo_acto.ilike.${terminoLike}`
+      );
+    }
   }
 
   const { data: escriturasData, error } = await query.order('numero_escritura', {
@@ -54,11 +64,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     console.error('Error al obtener escrituras desde Supabase:', error.message);
   }
 
-  // Pasamos los datos puros sin transformar a interfaces viejas
   const escrituras = (escriturasData as Escritura[]) || [];
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto font-body">
+    <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 font-body box-border min-w-0">
       <TableToolbar />
       <TestimoniosTable 
         testimonios={escrituras} 
