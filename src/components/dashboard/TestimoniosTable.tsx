@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/client";
 import { Escritura } from "@/types/escritura";
 import { toast } from 'sonner';
+import { formatFecha } from '@/lib/helper/date';
 
 interface TestimoniosTableProps {
   testimonios: Escritura[];
@@ -75,6 +76,7 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
   }
 
   const esPendiente = estadoActual.toUpperCase().includes('PENDIENTE');
+  const esVistaRegistro = estadoActual.toUpperCase().includes('EN_REGISTRO');
 
   return (
     <div className="font-body space-y-4">
@@ -112,11 +114,20 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
                 <span className="font-medium text-foreground/90">{item.tipo_acto}</span>
               </div>
               <div>
-                <span className="text-muted block text-[11px]">Fecha Ingreso:</span>
+                <span className="text-muted block text-[11px]">Fecha Firma:</span>
                 <span className="font-medium text-foreground/90">
-                  {item.fecha_ingreso_registro || item.fecha_firma}
+                  {formatFecha(item.fecha_firma)}
                 </span>
               </div>
+              {esVistaRegistro && (
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-muted text-[11px]">Fecha Ingreso Registro:</span>
+                <span className="font-medium text-foreground/90 text-right">
+                {formatFecha(item.fecha_ingreso_registro)}
+                </span>
+              </div>
+            )}
+          
             </div>
 
             <div>
@@ -171,7 +182,11 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
                 {esPendiente && (
                   <th className="px-6 py-3.5 text-amber-700">Motivo de Observación</th>
                 )}
-                <th className="px-6 py-3.5">Fecha Ingreso</th>
+                <th className="px-6 py-3.5">Fecha de Firma</th>
+                {/* 2. Encabezado Fecha Ingreso Registro (Condicional) */}
+              {esVistaRegistro && (
+                <th className="px-6 py-3.5">Fecha Ingreso Registro</th>
+              )}
                 <th className="px-6 py-3.5 text-right">Acciones</th>
               </tr>
             </thead>
@@ -205,8 +220,15 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
                     </td>
                   )}
                   <td className="px-6 py-4 text-muted whitespace-nowrap">
-                    {item.fecha_ingreso_registro || item.fecha_firma}
+                  {formatFecha(item.fecha_firma)}
+                </td>
+
+                {/* 2. Celda Fecha Ingreso Registro (Condicional) */}
+                {esVistaRegistro && (
+                  <td className="px-6 py-4 text-muted whitespace-nowrap">
+                    {formatFecha(item.fecha_ingreso_registro)}
                   </td>
+                )}
                   <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
                     {item.estado === 'EN_STOCK' && (
                       <button

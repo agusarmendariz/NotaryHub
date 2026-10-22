@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sora, Inter } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -23,7 +24,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${sora.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Toaster position="top-right" richColors closeButton />
+
+      </body>
     </html>
   );
 }

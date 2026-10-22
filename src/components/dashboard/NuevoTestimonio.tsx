@@ -1,288 +1,268 @@
 'use client';
 
-import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
-import { createClient } from '@/lib/client';
-import { EstadoEscritura, CondicionRegistral } from '@/types/escritura';
+import { AlertCircle, FileText, CheckCircle, Trash2 } from "lucide-react";
+import { createClient } from "@/lib/client";
+import { Escritura } from "@/types/escritura";
+import { toast } from 'sonner';
+import { formatFecha } from '@/lib/helper/date';
 
-interface FormState {
-  numero_escritura: string;
-  anio: string;
-  partes: string;
-  tipo_acto: string;
-  estado: EstadoEscritura;
-  condicion_registral: CondicionRegistral;
-  fecha_firma: string;
-  matricula_inmueble: string;
-  motivo_observacion: string;
-  fecha_ingreso_registro: string;
+interface TestimoniosTableProps {
+  testimonios: Escritura[];
+  estadoActual: string;
 }
 
-interface NuevoTestimonioProps {
-  onClose?: () => void;
-}
 
-export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
+export default function TestimoniosTable({ testimonios, estadoActual }: TestimoniosTableProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  const [formData, setFormData] = useState<FormState>({
-    numero_escritura: '',
-    anio: new Date().getFullYear().toString(),
-    partes: '',
-    tipo_acto: '',
-    estado: 'PENDIENTE_INGRESO',
-    condicion_registral: 'NO_APLICA',
-    fecha_firma: '',
-    matricula_inmueble: '',
-    motivo_observacion: '',
-    fecha_ingreso_registro: '',
-  });
+  // Acción: Pasar de EN_STOCK a RETIRADA
+  const handleEntregar = async (id: number) => {
+    const { error } = await supabase
+      .from('escrituras')
+      .update({ 
+        estado: 'RETIRADA', 
+        fecha_entrega: new Date().toISOString().split('T')[0] 
+      })
+      .eq('id', id);
 
-  type InputChangeEvent = ChangeEvent<
-    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-  >;
-
-  const handleChange = (e: InputChangeEvent) => {
-    const { name, value } = e.target;
-    
-    setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
-      
-      if (name === 'condicion_registral') {
-        if (value === 'PROVISIONAL') {
-          updated.estado = 'PENDIENTE_INGRESO';
-        } else if (prev.condicion_registral === 'PROVISIONAL' && value !== 'PROVISIONAL') {
-          updated.estado = 'EN_REGISTRO';
-        }
-      }
-      
-      return updated;
+    if (error) {
+      toast.error('Error al entregar escritura: ' + error.message);
+    } else {
+      toast.success('Escritura marcada como entregada correctamente');
+      router.refresh();
+    }
+  };
+  
+  // Acción: Borrar registro por error de carga
+  const handleEliminar = (id: number) => {
+    toast('¿Deseás eliminar esta escritura?', {
+      description: 'Esta acción no se puede deshacer.',
+      action: {
+        label: 'Eliminar',
+        onClick: async () => {
+          const { error } = await supabase
+            .from('escrituras')
+            .delete()
+            .eq('id', id);
+  
+          if (error) {
+            toast.error('Error al eliminar la escritura: ' + error.message);
+          } else {
+            toast.success('Escritura eliminada con éxito');
+            router.refresh();
+          }
+        },
+      },
+      cancel: {
+        label: 'Cancelar',
+        onClick: () => {},
+      },
     });
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const payload = {
-        numero_escritura: parseInt(formData.numero_escritura, 10),
-        anio: parseInt(formData.anio, 10),
-        partes: formData.partes,
-        tipo_acto: formData.tipo_acto,
-        estado: formData.estado,
-        condicion_registral: formData.condicion_registral,
-        fecha_firma: formData.fecha_firma,
-        matricula_inmueble: formData.matricula_inmueble || null,
-        motivo_observacion:
-          formData.condicion_registral === 'PROVISIONAL'
-            ? formData.motivo_observacion
-            : null,
-        fecha_ingreso_registro: formData.fecha_ingreso_registro || null,
-      };
-
-      const { error: insertError } = await supabase
-        .from('escrituras')
-        .insert([payload])
-        .select();
-
-      if (insertError) throw insertError;
-
-      router.refresh();
-
-      if (onClose) {
-        onClose();
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Error al guardar la escritura');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Clases compartidas optimizadas para legibilidad y toque en móviles
-  const inputBaseStyles =
-    'w-full px-3.5 py-2.5 min-h-[44px] text-base sm:text-sm border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card text-foreground transition-all';
-  const labelStyles =
-    'block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5';
-
-  return (
-    <div className="w-full max-w-3xl mx-auto p-4 sm:p-6 bg-card rounded-2xl border border-border/80 shadow-sm space-y-6 font-body max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-title font-semibold tracking-tight text-foreground">
-          Nueva Escritura
-        </h2>
-        <p className="text-xs sm:text-sm text-muted mt-0.5">
-          Carga un nuevo Primer Testimonio
+  /* Estado vacío */
+  if (testimonios.length === 0) {
+    return (
+      <div className="p-12 text-center bg-card border border-border rounded-xl my-4 font-body">
+        <FileText className="w-10 h-10 text-muted mx-auto mb-3" />
+        <h3 className="text-sm font-semibold text-foreground">No se encontraron registros</h3>
+        <p className="text-xs text-muted mt-1">
+          No hay testimonios que coincidan con los filtros o la búsqueda actual.
         </p>
       </div>
+    );
+  }
 
-      {error && (
-        <div className="p-3 text-sm text-red-700 bg-red-500/10 rounded-xl border border-red-500/20 font-medium">
-          {error}
-        </div>
-      )}
+  const esPendiente = estadoActual.toUpperCase().includes('PENDIENTE');
+  const esVistaRegistro = estadoActual.toUpperCase().includes('EN_REGISTRO');
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* BLOQUE 1: Datos numéricos y fecha */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
-          <div>
-            <label className={labelStyles}>N° Escritura *</label>
-            <input
-              type="number"
-              name="numero_escritura"
-              value={formData.numero_escritura}
-              onChange={handleChange}
-              required
-              inputMode="numeric"
-              placeholder="123"
-              className={inputBaseStyles}
-            />
-          </div>
-
-          <div>
-            <label className={labelStyles}>Año *</label>
-            <input
-              type="number"
-              name="anio"
-              value={formData.anio}
-              onChange={handleChange}
-              required
-              inputMode="numeric"
-              className={inputBaseStyles}
-            />
-          </div>
-
-          <div className="col-span-2 md:col-span-1">
-            <label className={labelStyles}>Fecha de Firma *</label>
-            <input
-              type="date"
-              name="fecha_firma"
-              min="1900-01-01"
-              max="9999-12-31"
-              value={formData.fecha_firma}
-              onChange={handleChange}
-              required
-              className={inputBaseStyles}
-            />
-          </div>
-        </div>
-
-        {/* BLOQUE 2: Acto y Partes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
-          <div>
-            <label className={labelStyles}>Tipo de Acto *</label>
-            <input
-              type="text"
-              name="tipo_acto"
-              placeholder="Ej: Compraventa, Donación"
-              value={formData.tipo_acto}
-              onChange={handleChange}
-              required
-              className={`${inputBaseStyles} placeholder:text-muted/60`}
-            />
-          </div>
-
-          <div>
-            <label className={labelStyles}>Partes Intervinientes *</label>
-            <input
-              type="text"
-              name="partes"
-              placeholder="Ej: Pérez c/ Gómez"
-              value={formData.partes}
-              onChange={handleChange}
-              required
-              className={`${inputBaseStyles} placeholder:text-muted/60`}
-            />
-          </div>
-        </div>
-
-        {/* BLOQUE 3: Estado y Datos Registrales */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4">
-          <div>
-            <label className={labelStyles}>Estado Inicial</label>
-            <select
-              name="estado"
-              value={formData.estado}
-              onChange={handleChange}
-              className={inputBaseStyles}
-            >
-              <option value="PENDIENTE_INGRESO">Pendiente de Ingreso</option>
-              <option value="EN_REGISTRO">En Registro</option>
-              <option value="EN_STOCK">En Stock / Custodia</option>
-            </select>
-          </div>
-
-          <div>
-            <label className={labelStyles}>Matrícula Inmueble</label>
-            <input
-              type="text"
-              name="matricula_inmueble"
-              placeholder="Ej: 12345/0"
-              value={formData.matricula_inmueble}
-              onChange={handleChange}
-              className={`${inputBaseStyles} placeholder:text-muted/60`}
-            />
-          </div>
-
-          <div className="sm:col-span-2 md:col-span-1">
-            <label className={labelStyles}>Condición Registral</label>
-            <select
-              name="condicion_registral"
-              value={formData.condicion_registral}
-              onChange={handleChange}
-              className={inputBaseStyles}
-            >
-              <option value="NO_APLICA">No Aplica</option>
-              <option value="DEFINITIVA">Definitiva</option>
-              <option value="PROVISIONAL">Provisional (180 días)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* BLOQUE 4: Motivo de Observación Condicional */}
-        {formData.condicion_registral === 'PROVISIONAL' && (
-          <div className="p-3.5 sm:p-4 bg-amber-500/10 rounded-xl border border-amber-500/20 space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-              Motivo de Observación / Defecto
-            </label>
-            <textarea
-              name="motivo_observacion"
-              rows={3}
-              placeholder="Detalle los defectos o requisitos faltantes..."
-              value={formData.motivo_observacion}
-              onChange={handleChange}
-              className="w-full p-3 text-base sm:text-sm rounded-lg border border-amber-500/30 bg-card text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
-            />
-          </div>
-        )}
-
-        {/* BLOQUE 5: Botones de Acción */}
-        <div className="pt-4 border-t border-border flex flex-col-reverse sm:flex-row items-center sm:justify-end gap-2.5 sm:gap-3">
-          <button
-            type="button"
-            onClick={onClose || (() => router.push('/dashboard'))}
-            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 min-h-[44px] text-sm font-medium text-muted hover:text-foreground hover:bg-primary-light/50 rounded-xl transition-colors text-center"
+  return (
+    <div className="font-body space-y-4">
+      {/* VISTA MOBILE: Cards (se muestra solo en pantallas < md) */}
+      <div className="grid grid-cols-1 gap-3 md:hidden">
+        {testimonios.map((item) => (
+          <div 
+            key={item.id} 
+            className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3"
           >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 min-h-[44px] text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{loading ? 'Guardando...' : 'Registrar Escritura'}</span>
-          </button>
+            {/* Header Card */}
+            <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+              <div>
+                <span className="text-[10px] uppercase font-semibold text-muted block">
+                  N° Escritura
+                </span>
+                <span className="text-sm font-bold text-foreground">
+                  {item.numero_escritura}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-semibold text-muted block">
+                  Matrícula
+                </span>
+                <span className="text-xs font-mono font-medium text-foreground">
+                  {item.matricula_inmueble || '-'}
+                </span>
+              </div>
+            </div>
+
+            {/* Detalles */}
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-muted text-[11px]">Acto / Operación:</span>
+                <span className="font-medium text-foreground/90 text-right truncate">
+                  {item.tipo_acto}
+                </span>
+              </div>
+
+              {/* Fecha Firma siempre visible */}
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-muted text-[11px]">Fecha Firma:</span>
+                <span className="font-medium text-foreground/90 text-right">
+                  {formatFecha(item.fecha_firma)}
+                </span>
+              </div>
+
+              {/* Fecha Ingreso Registro condicional */}
+              {esVistaRegistro && (
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-muted text-[11px]">Fecha Ingreso Registro:</span>
+                  <span className="font-medium text-foreground/90 text-right">
+                    {formatFecha(item.fecha_ingreso_registro)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <span className="text-muted block text-[11px]">Partes Intervinientes:</span>
+              <span className="font-medium text-foreground block text-xs break-words leading-snug mt-0.5">
+                {item.partes}
+              </span>
+            </div>
+
+            {/* Motivo Observación (solo si es pendiente) */}
+            {esPendiente && (
+              <div className="flex items-start gap-1.5 text-amber-900 bg-amber-500/10 p-2 rounded-md border border-amber-500/20">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span className="text-[11px] leading-snug font-medium break-words">
+                  {item.motivo_observacion || 'Sin motivo especificado'}
+                </span>
+              </div>
+            )}
+
+            {/* Acciones Mobile */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+              {item.estado === 'EN_STOCK' && (
+                <button
+                  onClick={() => handleEntregar(item.id)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 text-xs font-medium transition-colors"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span>Entregar</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => handleEliminar(item.id)}
+                className="inline-flex items-center justify-center p-1.5 text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
+                title="Eliminar escritura"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* VISTA DESKTOP: Tabla Tradicional (se oculta en pantallas < md) */}
+      <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-foreground">
+            <thead className="bg-muted/30 text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-border">
+              <tr>
+                <th className="px-6 py-3.5">Matrícula</th>
+                <th className="px-6 py-3.5">N° Escritura</th>
+                <th className="px-6 py-3.5">Acto / Operación</th>
+                <th className="px-6 py-3.5">Partes Intervinientes</th>
+                {esPendiente && (
+                  <th className="px-6 py-3.5 text-amber-700">Motivo de Observación</th>
+                )}
+                <th className="px-6 py-3.5">Fecha Firma</th>
+                {esVistaRegistro && (
+                  <th className="px-6 py-3.5">Fecha Ingreso Registro</th>
+                )}
+                <th className="px-6 py-3.5 text-right">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-border/60">
+              {testimonios.map((item) => (
+                <tr 
+                  key={item.id} 
+                  className="hover:bg-primary-light/30 transition-colors"
+                >
+                  <td className="px-6 py-4 font-mono font-medium text-foreground whitespace-nowrap">
+                    {item.matricula_inmueble || '-'}
+                  </td>
+                  <td className="px-6 py-4 font-semibold text-foreground whitespace-nowrap">
+                    {item.numero_escritura}
+                  </td>
+                  <td className="px-6 py-4 text-foreground/80">
+                    {item.tipo_acto}
+                  </td>
+                  <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate">
+                    {item.partes}
+                  </td>
+                  {esPendiente && (
+                    <td className="px-6 py-4">
+                      <div className="flex items-start gap-1.5 text-amber-900 bg-amber-500/10 px-2.5 py-1.5 rounded-md border border-amber-500/20 max-w-md">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span className="text-[11px] leading-snug font-medium break-words">
+                          {item.motivo_observacion || 'Sin motivo especificado'}
+                        </span>
+                      </div>
+                    </td>
+                  )}
+                  
+                  {/* Fecha Firma */}
+                  <td className="px-6 py-4 text-muted whitespace-nowrap">
+                    {formatFecha(item.fecha_firma)}
+                  </td>
+
+                  {/* Fecha Ingreso Registro (Condicional) */}
+                  {esVistaRegistro && (
+                    <td className="px-6 py-4 text-muted whitespace-nowrap">
+                      {formatFecha(item.fecha_ingreso_registro)}
+                    </td>
+                  )}
+
+                  <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                    {item.estado === 'EN_STOCK' && (
+                      <button
+                        onClick={() => handleEntregar(item.id)}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline transition-all mr-2"
+                        title="Marcar como entregada al cliente"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>Entregar</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleEliminar(item.id)}
+                      className="inline-flex items-center justify-center text-red-600 hover:text-red-800 transition-colors p-1.5 rounded hover:bg-red-500/10"
+                      title="Eliminar escritura"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
