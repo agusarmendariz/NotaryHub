@@ -1,8 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ExternalLink, FileText, CheckCircle, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { AlertCircle, FileText, CheckCircle, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/client";
 import { Escritura } from "@/types/escritura";
 import { toast } from 'sonner';
@@ -27,40 +26,40 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
       })
       .eq('id', id);
 
-      if (error) {
-        toast.error('Error al entregar escritura: ' + error.message);
-      } else {
-        toast.success('Escritura marcada como entregada correctamente');
-        router.refresh();
-      }
-    };
+    if (error) {
+      toast.error('Error al entregar escritura: ' + error.message);
+    } else {
+      toast.success('Escritura marcada como entregada correctamente');
+      router.refresh();
+    }
+  };
   
-    // Acción: Borrar registro por error de carga
-    const handleEliminar = (id: number) => {
-      toast('¿Deseás eliminar esta escritura?', {
-        description: 'Esta acción no se puede deshacer.',
-        action: {
-          label: 'Eliminar',
-          onClick: async () => {
-            const { error } = await supabase
-              .from('escrituras')
-              .delete()
-              .eq('id', id);
-    
-            if (error) {
-              toast.error('Error al eliminar la escritura: ' + error.message);
-            } else {
-              toast.success('Escritura eliminada con éxito');
-              router.refresh();
-            }
-          },
+  // Acción: Borrar registro por error de carga
+  const handleEliminar = (id: number) => {
+    toast('¿Deseás eliminar esta escritura?', {
+      description: 'Esta acción no se puede deshacer.',
+      action: {
+        label: 'Eliminar',
+        onClick: async () => {
+          const { error } = await supabase
+            .from('escrituras')
+            .delete()
+            .eq('id', id);
+  
+          if (error) {
+            toast.error('Error al eliminar la escritura: ' + error.message);
+          } else {
+            toast.success('Escritura eliminada con éxito');
+            router.refresh();
+          }
         },
-        cancel: {
-          label: 'Cancelar',
-          onClick: () => {},
-        },
-      });
-    };
+      },
+      cancel: {
+        label: 'Cancelar',
+        onClick: () => {},
+      },
+    });
+  };
 
   /* Estado vacío */
   if (testimonios.length === 0) {
@@ -107,39 +106,46 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
               </div>
             </div>
 
-            {/* Detalles */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-muted block text-[11px]">Acto / Operación:</span>
-                <span className="font-medium text-foreground/90">{item.tipo_acto}</span>
+            {/* Detalles en apilado limpio */}
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-muted text-[11px]">Acto / Operación:</span>
+                <span className="font-medium text-foreground/90 text-right truncate">
+                  {item.tipo_acto}
+                </span>
               </div>
-              <div>
-                <span className="text-muted block text-[11px]">Fecha Firma:</span>
-                <span className="font-medium text-foreground/90">
+
+              {/* 1. Fecha Firma */}
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-muted text-[11px]">Fecha Firma:</span>
+                <span className="font-medium text-foreground/90 text-right">
                   {formatFecha(item.fecha_firma)}
                 </span>
               </div>
+
+              {/* 2. Fecha Ingreso Registro (solo si está en registro) */}
               {esVistaRegistro && (
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-muted text-[11px]">Fecha Ingreso Registro:</span>
-                <span className="font-medium text-foreground/90 text-right">
-                {formatFecha(item.fecha_ingreso_registro)}
-                </span>
-              </div>
-            )}
-          
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-muted text-[11px]">Fecha Ingreso Registro:</span>
+                  <span className="font-medium text-foreground/90 text-right">
+                    {formatFecha(item.fecha_ingreso_registro)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>
               <span className="text-muted block text-[11px]">Partes Intervinientes:</span>
-              <span className="font-medium text-foreground">{item.partes}</span>
+              <span className="font-medium text-foreground block text-xs break-words leading-snug mt-0.5">
+                {item.partes}
+              </span>
             </div>
 
             {/* Motivo Observación (solo si es pendiente) */}
             {esPendiente && (
               <div className="flex items-start gap-1.5 text-amber-900 bg-amber-500/10 p-2 rounded-md border border-amber-500/20">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span className="text-[11px] leading-snug font-medium">
+                <span className="text-[11px] leading-snug font-medium break-words">
                   {item.motivo_observacion || 'Sin motivo especificado'}
                 </span>
               </div>
@@ -182,11 +188,10 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
                 {esPendiente && (
                   <th className="px-6 py-3.5 text-amber-700">Motivo de Observación</th>
                 )}
-                <th className="px-6 py-3.5">Fecha de Firma</th>
-                {/* 2. Encabezado Fecha Ingreso Registro (Condicional) */}
-              {esVistaRegistro && (
-                <th className="px-6 py-3.5">Fecha Ingreso Registro</th>
-              )}
+                <th className="px-6 py-3.5">Fecha Firma</th>
+                {esVistaRegistro && (
+                  <th className="px-6 py-3.5">Fecha Ingreso Registro</th>
+                )}
                 <th className="px-6 py-3.5 text-right">Acciones</th>
               </tr>
             </thead>
@@ -206,29 +211,32 @@ export default function TestimoniosTable({ testimonios, estadoActual }: Testimon
                   <td className="px-6 py-4 text-foreground/80">
                     {item.tipo_acto}
                   </td>
-                  <td className="px-6 py-4 font-medium text-foreground">
+                  <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate">
                     {item.partes}
                   </td>
                   {esPendiente && (
                     <td className="px-6 py-4">
                       <div className="flex items-start gap-1.5 text-amber-900 bg-amber-500/10 px-2.5 py-1.5 rounded-md border border-amber-500/20 max-w-md">
                         <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <span className="text-[11px] leading-snug font-medium">
+                        <span className="text-[11px] leading-snug font-medium break-words">
                           {item.motivo_observacion || 'Sin motivo especificado'}
                         </span>
                       </div>
                     </td>
                   )}
-                  <td className="px-6 py-4 text-muted whitespace-nowrap">
-                  {formatFecha(item.fecha_firma)}
-                </td>
 
-                {/* 2. Celda Fecha Ingreso Registro (Condicional) */}
-                {esVistaRegistro && (
+                  {/* 1. Celda Fecha Firma */}
                   <td className="px-6 py-4 text-muted whitespace-nowrap">
-                    {formatFecha(item.fecha_ingreso_registro)}
+                    {formatFecha(item.fecha_firma)}
                   </td>
-                )}
+
+                  {/* 2. Celda Fecha Ingreso Registro (Condicional) */}
+                  {esVistaRegistro && (
+                    <td className="px-6 py-4 text-muted whitespace-nowrap">
+                      {formatFecha(item.fecha_ingreso_registro)}
+                    </td>
+                  )}
+
                   <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
                     {item.estado === 'EN_STOCK' && (
                       <button
