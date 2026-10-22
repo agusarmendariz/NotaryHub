@@ -31,8 +31,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       query = query.eq('estado', 'EN_REGISTRO');
     } else if (estadoUpper === 'EN_STOCK') {
       query = query.eq('estado', 'EN_STOCK');
-    } else if (estadoUpper === 'RETIRADA') {
-      query = query.eq('estado', 'RETIRADA');
     } else {
       query = query.eq('estado', estadoUpper);
     }
