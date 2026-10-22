@@ -1,268 +1,316 @@
 'use client';
 
+import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, FileText, CheckCircle, Trash2 } from "lucide-react";
-import { createClient } from "@/lib/client";
-import { Escritura } from "@/types/escritura";
-import { toast } from 'sonner';
+import { createClient } from '@/lib/client';
+import { EstadoEscritura, CondicionRegistral } from '@/types/escritura';
 import { formatFecha } from '@/lib/helper/date';
 
-interface TestimoniosTableProps {
-  testimonios: Escritura[];
-  estadoActual: string;
+interface FormState {
+  numero_escritura: string;
+  anio: string;
+  partes: string;
+  tipo_acto: string;
+  estado: EstadoEscritura;
+  condicion_registral: CondicionRegistral;
+  fecha_firma: string;
+  matricula_inmueble: string;
+  motivo_observacion: string;
+  fecha_ingreso_registro: string;
 }
 
+interface NuevoTestimonioProps {
+  onClose?: () => void;
+}
 
-export default function TestimoniosTable({ testimonios, estadoActual }: TestimoniosTableProps) {
+export function NuevoTestimonio({ onClose }: NuevoTestimonioProps) {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  // Acción: Pasar de EN_STOCK a RETIRADA
-  const handleEntregar = async (id: number) => {
-    const { error } = await supabase
-      .from('escrituras')
-      .update({ 
-        estado: 'RETIRADA', 
-        fecha_entrega: new Date().toISOString().split('T')[0] 
-      })
-      .eq('id', id);
+  const [formData, setFormData] = useState<FormState>({
+    numero_escritura: '',
+    anio: new Date().getFullYear().toString(),
+    partes: '',
+    tipo_acto: '',
+    estado: 'PENDIENTE_INGRESO',
+    condicion_registral: 'NO_APLICA',
+    fecha_firma: '',
+    matricula_inmueble: '',
+    motivo_observacion: '',
+    fecha_ingreso_registro: '',
+  });
 
-    if (error) {
-      toast.error('Error al entregar escritura: ' + error.message);
-    } else {
-      toast.success('Escritura marcada como entregada correctamente');
-      router.refresh();
-    }
-  };
-  
-  // Acción: Borrar registro por error de carga
-  const handleEliminar = (id: number) => {
-    toast('¿Deseás eliminar esta escritura?', {
-      description: 'Esta acción no se puede deshacer.',
-      action: {
-        label: 'Eliminar',
-        onClick: async () => {
-          const { error } = await supabase
-            .from('escrituras')
-            .delete()
-            .eq('id', id);
-  
-          if (error) {
-            toast.error('Error al eliminar la escritura: ' + error.message);
-          } else {
-            toast.success('Escritura eliminada con éxito');
-            router.refresh();
-          }
-        },
-      },
-      cancel: {
-        label: 'Cancelar',
-        onClick: () => {},
-      },
+  type InputChangeEvent = ChangeEvent<
+    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  >;
+
+  const handleChange = (e: InputChangeEvent) => {
+    const { name, value } = e.target;
+    
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      
+      if (name === 'condicion_registral') {
+        if (value === 'PROVISIONAL') {
+          updated.estado = 'PENDIENTE_INGRESO';
+        } else if (prev.condicion_registral === 'PROVISIONAL' && value !== 'PROVISIONAL') {
+          updated.estado = 'EN_REGISTRO';
+        }
+      }
+      
+      return updated;
     });
   };
 
-  /* Estado vacío */
-  if (testimonios.length === 0) {
-    return (
-      <div className="p-12 text-center bg-card border border-border rounded-xl my-4 font-body">
-        <FileText className="w-10 h-10 text-muted mx-auto mb-3" />
-        <h3 className="text-sm font-semibold text-foreground">No se encontraron registros</h3>
-        <p className="text-xs text-muted mt-1">
-          No hay testimonios que coincidan con los filtros o la búsqueda actual.
-        </p>
-      </div>
-    );
-  }
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-  const esPendiente = estadoActual.toUpperCase().includes('PENDIENTE');
-  const esVistaRegistro = estadoActual.toUpperCase().includes('EN_REGISTRO');
+    try {
+      // Mandamos la fecha limpia 'YYYY-MM-DD' a Supabase
+      const payload = {
+        numero_escritura: parseInt(formData.numero_escritura, 10),
+        anio: parseInt(formData.anio, 10),
+        partes: formData.partes,
+        tipo_acto: formData.tipo_acto,
+        estado: formData.estado,
+        condicion_registral: formData.condicion_registral,
+        fecha_firma: formData.fecha_firma ? formData.fecha_firma.split('T')[0] : null,
+        matricula_inmueble: formData.matricula_inmueble || null,
+        motivo_observacion:
+          formData.condicion_registral === 'PROVISIONAL'
+            ? formData.motivo_observacion
+            : null,
+        fecha_ingreso_registro:
+          formData.estado === 'EN_REGISTRO' && formData.fecha_ingreso_registro
+            ? formData.fecha_ingreso_registro.split('T')[0]
+            : null,
+      };
+
+      const { error: insertError } = await supabase
+        .from('escrituras')
+        .insert([payload])
+        .select();
+
+      if (insertError) throw insertError;
+
+      router.refresh();
+
+      if (onClose) {
+        onClose();
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar la escritura');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const esEnRegistro = formData.estado === 'EN_REGISTRO';
 
   return (
-    <div className="font-body space-y-4">
-      {/* VISTA MOBILE: Cards (se muestra solo en pantallas < md) */}
-      <div className="grid grid-cols-1 gap-3 md:hidden">
-        {testimonios.map((item) => (
-          <div 
-            key={item.id} 
-            className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3"
-          >
-            {/* Header Card */}
-            <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-              <div>
-                <span className="text-[10px] uppercase font-semibold text-muted block">
-                  N° Escritura
-                </span>
-                <span className="text-sm font-bold text-foreground">
-                  {item.numero_escritura}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-semibold text-muted block">
-                  Matrícula
-                </span>
-                <span className="text-xs font-mono font-medium text-foreground">
-                  {item.matricula_inmueble || '-'}
-                </span>
-              </div>
-            </div>
-
-            {/* Detalles */}
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-muted text-[11px]">Acto / Operación:</span>
-                <span className="font-medium text-foreground/90 text-right truncate">
-                  {item.tipo_acto}
-                </span>
-              </div>
-
-              {/* Fecha Firma siempre visible */}
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-muted text-[11px]">Fecha Firma:</span>
-                <span className="font-medium text-foreground/90 text-right">
-                  {formatFecha(item.fecha_firma)}
-                </span>
-              </div>
-
-              {/* Fecha Ingreso Registro condicional */}
-              {esVistaRegistro && (
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-muted text-[11px]">Fecha Ingreso Registro:</span>
-                  <span className="font-medium text-foreground/90 text-right">
-                    {formatFecha(item.fecha_ingreso_registro)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <span className="text-muted block text-[11px]">Partes Intervinientes:</span>
-              <span className="font-medium text-foreground block text-xs break-words leading-snug mt-0.5">
-                {item.partes}
-              </span>
-            </div>
-
-            {/* Motivo Observación (solo si es pendiente) */}
-            {esPendiente && (
-              <div className="flex items-start gap-1.5 text-amber-900 bg-amber-500/10 p-2 rounded-md border border-amber-500/20">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span className="text-[11px] leading-snug font-medium break-words">
-                  {item.motivo_observacion || 'Sin motivo especificado'}
-                </span>
-              </div>
-            )}
-
-            {/* Acciones Mobile */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
-              {item.estado === 'EN_STOCK' && (
-                <button
-                  onClick={() => handleEntregar(item.id)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 text-xs font-medium transition-colors"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  <span>Entregar</span>
-                </button>
-              )}
-
-              <button
-                onClick={() => handleEliminar(item.id)}
-                className="inline-flex items-center justify-center p-1.5 text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
-                title="Eliminar escritura"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
+    <div className="bg-card p-6 rounded-2xl border border-border max-w-2xl w-full mx-auto font-body shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-foreground">Nueva Escritura</h2>
+        <p className="text-xs text-muted mt-1">Carga un nuevo Primer Testimonio</p>
       </div>
 
-      {/* VISTA DESKTOP: Tabla Tradicional (se oculta en pantallas < md) */}
-      <div className="hidden md:block bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-foreground">
-            <thead className="bg-muted/30 text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-border">
-              <tr>
-                <th className="px-6 py-3.5">Matrícula</th>
-                <th className="px-6 py-3.5">N° Escritura</th>
-                <th className="px-6 py-3.5">Acto / Operación</th>
-                <th className="px-6 py-3.5">Partes Intervinientes</th>
-                {esPendiente && (
-                  <th className="px-6 py-3.5 text-amber-700">Motivo de Observación</th>
-                )}
-                <th className="px-6 py-3.5">Fecha Firma</th>
-                {esVistaRegistro && (
-                  <th className="px-6 py-3.5">Fecha Ingreso Registro</th>
-                )}
-                <th className="px-6 py-3.5 text-right">Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-border/60">
-              {testimonios.map((item) => (
-                <tr 
-                  key={item.id} 
-                  className="hover:bg-primary-light/30 transition-colors"
-                >
-                  <td className="px-6 py-4 font-mono font-medium text-foreground whitespace-nowrap">
-                    {item.matricula_inmueble || '-'}
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-foreground whitespace-nowrap">
-                    {item.numero_escritura}
-                  </td>
-                  <td className="px-6 py-4 text-foreground/80">
-                    {item.tipo_acto}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate">
-                    {item.partes}
-                  </td>
-                  {esPendiente && (
-                    <td className="px-6 py-4">
-                      <div className="flex items-start gap-1.5 text-amber-900 bg-amber-500/10 px-2.5 py-1.5 rounded-md border border-amber-500/20 max-w-md">
-                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <span className="text-[11px] leading-snug font-medium break-words">
-                          {item.motivo_observacion || 'Sin motivo especificado'}
-                        </span>
-                      </div>
-                    </td>
-                  )}
-                  
-                  {/* Fecha Firma */}
-                  <td className="px-6 py-4 text-muted whitespace-nowrap">
-                    {formatFecha(item.fecha_firma)}
-                  </td>
-
-                  {/* Fecha Ingreso Registro (Condicional) */}
-                  {esVistaRegistro && (
-                    <td className="px-6 py-4 text-muted whitespace-nowrap">
-                      {formatFecha(item.fecha_ingreso_registro)}
-                    </td>
-                  )}
-
-                  <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
-                    {item.estado === 'EN_STOCK' && (
-                      <button
-                        onClick={() => handleEntregar(item.id)}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline transition-all mr-2"
-                        title="Marcar como entregada al cliente"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Entregar</span>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleEliminar(item.id)}
-                      className="inline-flex items-center justify-center text-red-600 hover:text-red-800 transition-colors p-1.5 rounded hover:bg-red-500/10"
-                      title="Eliminar escritura"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-xs font-medium">
+          {error}
         </div>
-      </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Fila 1: Fechas y datos principales en grilla adaptable */}
+        <div className={`grid grid-cols-1 ${esEnRegistro ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-4`}>
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">
+              N° Escritura *
+            </label>
+            <input
+              type="number"
+              name="numero_escritura"
+              value={formData.numero_escritura}
+              onChange={handleChange}
+              placeholder="123"
+              required
+              className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">
+              Año *
+            </label>
+            <input
+              type="number"
+              name="anio"
+              value={formData.anio}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">
+              Fecha de Firma *
+            </label>
+            <input
+              type="date"
+              name="fecha_firma"
+              value={formData.fecha_firma}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+
+          {/* Fecha Ingreso Registro condicional */}
+          {esEnRegistro && (
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1 truncate" title="Fecha de Ingreso al Registro">
+                Fecha Ingreso *
+              </label>
+              <input
+                type="date"
+                name="fecha_ingreso_registro"
+                value={formData.fecha_ingreso_registro}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Fila 2: Acto y Partes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">
+              Tipo de Acto *
+            </label>
+            <input
+              type="text"
+              name="tipo_acto"
+              value={formData.tipo_acto}
+              onChange={handleChange}
+              placeholder="Ej: Compraventa, Donación"
+              required
+              className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">
+              Partes Intervinientes *
+            </label>
+            <input
+              type="text"
+              name="partes"
+              value={formData.partes}
+              onChange={handleChange}
+              placeholder="Ej: Pérez a favor de Gómez"
+              required
+              className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+        </div>
+
+        {/* Fila 3: Estado, Matrícula y Condición Registral */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">
+              Estado Inicial
+            </label>
+            <select
+              name="estado"
+              value={formData.estado}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <option value="PENDIENTE_INGRESO">Pendiente Ingreso</option>
+              <option value="EN_REGISTRO">En Registro</option>
+              <option value="EN_STOCK">En Stock</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">
+              Matrícula Inmueble
+            </label>
+            <input
+              type="text"
+              name="matricula_inmueble"
+              value={formData.matricula_inmueble}
+              onChange={handleChange}
+              placeholder="Ej: 12345/0"
+              className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted uppercase mb-1">
+              Condición Registral
+            </label>
+            <select
+              name="condicion_registral"
+              value={formData.condicion_registral}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <option value="NO_APLICA">No Aplica</option>
+              <option value="DEFINITIVA">Definitiva</option>
+              <option value="PROVISIONAL">Provisional</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Campo observacion condicional */}
+        {formData.condicion_registral === 'PROVISIONAL' && (
+          <div>
+            <label className="block text-xs font-semibold text-amber-700 uppercase mb-1">
+              Motivo de Observación *
+            </label>
+            <textarea
+              name="motivo_observacion"
+              value={formData.motivo_observacion}
+              onChange={handleChange}
+              placeholder="Describa el motivo de la inscripción provisional..."
+              required
+              rows={2}
+              className="w-full px-3 py-2 border border-amber-500/30 bg-amber-500/5 rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+        )}
+
+        {/* Botones de acción */}
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 text-xs font-medium text-muted hover:text-foreground transition-colors"
+            >
+              Cancelar
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Guardando...' : '+ Registrar Escritura'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

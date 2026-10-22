@@ -2,7 +2,6 @@ export type EstadoEscritura =
   | 'PENDIENTE_INGRESO'
   | 'EN_REGISTRO'
   | 'EN_STOCK'
-  | 'RETIRADA';
 
 export type CondicionRegistral =
   | 'DEFINITIVA'
